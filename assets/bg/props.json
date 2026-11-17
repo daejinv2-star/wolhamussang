@@ -1,0 +1,27 @@
+{
+ "prop_pine": {
+  "w": 614,
+  "h": 640,
+  "worldH": 5.2
+ },
+ "prop_lantern": {
+  "w": 153,
+  "h": 285,
+  "worldH": 1.9
+ },
+ "prop_totems": {
+  "w": 286,
+  "h": 450,
+  "worldH": 3.0
+ },
+ "prop_rock": {
+  "w": 421,
+  "h": 240,
+  "worldH": 1.6
+ },
+ "prop_brazier": {
+  "w": 136,
+  "h": 330,
+  "worldH": 2.2
+ }
+}
