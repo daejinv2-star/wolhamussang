@@ -51,12 +51,13 @@ canvas{display:block;width:100%;height:100%}
 #touch{position:absolute;inset:0;display:none}
 #joyzone{position:absolute;left:0;bottom:0;width:46%;height:72%}
 #joy{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;border:2px solid #fff4;background:radial-gradient(#fff1,#fff0);left:110px;top:calc(100% - 110px);pointer-events:none}
-#knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:radial-gradient(#fffc,#aab6);box-shadow:0 2px 8px #000a}
+#knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:radial-gradient(#fffc,#aab6);box-shadow:0 2px 8px #000a;opacity:.55}
 .btn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;text-shadow:0 2px 2px #000;border:2px solid #fff7;box-shadow:0 4px 12px #000a, inset 0 0 18px #fff3}
-.btn:active,.btn.on{transform:scale(.92);filter:brightness(1.4)}
+.btn{opacity:.42}
+.btn:active,.btn.on{transform:scale(.92);filter:brightness(1.4);opacity:.8}
 #btnA{right:max(26px,var(--safeR));bottom:30px;width:96px;height:96px;font-size:20px;background:radial-gradient(circle at 35% 30%,#ff9a6a,#c02a1a)}
-#btnS{right:calc(max(26px,var(--safeR)) + 104px);bottom:86px;width:76px;height:76px;font-size:16px;background:radial-gradient(circle at 35% 30%,#8a8a8a,#3a3a3a);opacity:.55}
-#btnS.ready{background:radial-gradient(circle at 35% 30%,#fff3a0,#f0a000);opacity:1;animation:pulse .5s infinite alternate;color:#3a1a00;text-shadow:none}
+#btnS{right:calc(max(26px,var(--safeR)) + 104px);bottom:86px;width:76px;height:76px;font-size:16px;background:radial-gradient(circle at 35% 30%,#8a8a8a,#3a3a3a);opacity:.28}
+#btnS.ready{background:radial-gradient(circle at 35% 30%,#fff3a0,#f0a000);opacity:.7;animation:pulse .5s infinite alternate;color:#3a1a00;text-shadow:none}
 #btnJ{right:calc(max(26px,var(--safeR)) + 106px);bottom:8px;width:72px;height:72px;font-size:16px;background:radial-gradient(circle at 35% 30%,#8ad0ff,#1a5fc0)}
 #mute{pointer-events:auto;display:inline-block;margin-top:3px;padding:2px 9px;font-size:11px;font-weight:700;border:1px solid #fff6;border-radius:999px;background:#0008;cursor:pointer}
 /* cut-in */
