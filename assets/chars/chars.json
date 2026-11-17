@@ -153,6 +153,34 @@
     "fps": 8.0,
     "loop": true,
     "upp": 0.005882352941176471
+   },
+   "jump": {
+    "file": "h1_mujin__jump.webp",
+    "cols": 8,
+    "rows": 1,
+    "count": 8,
+    "cellW": 250,
+    "cellH": 344,
+    "anchorX": 131.56,
+    "anchorY": 338.11,
+    "fps": 12.0,
+    "loop": false,
+    "upp": 0.005882352941176471,
+    "hitFrac": 0.188
+   },
+   "jumpatk": {
+    "file": "h1_mujin__jumpatk.webp",
+    "cols": 3,
+    "rows": 3,
+    "count": 9,
+    "cellW": 539,
+    "cellH": 358,
+    "anchorX": 222.06,
+    "anchorY": 342.17,
+    "fps": 12.0,
+    "loop": false,
+    "upp": 0.005882352941176471,
+    "hitFrac": 0.389
    }
   }
  },
@@ -310,6 +338,34 @@
     "fps": 8.28,
     "loop": true,
     "upp": 0.0058823529411764705
+   },
+   "jump": {
+    "file": "h2_seolhwa__jump.webp",
+    "cols": 6,
+    "rows": 2,
+    "count": 8,
+    "cellW": 298,
+    "cellH": 320,
+    "anchorX": 119.83,
+    "anchorY": 310.42,
+    "fps": 12.0,
+    "loop": false,
+    "upp": 0.0058823529411764705,
+    "hitFrac": 0.8
+   },
+   "jumpatk": {
+    "file": "h2_seolhwa__jumpatk.webp",
+    "cols": 4,
+    "rows": 3,
+    "count": 9,
+    "cellW": 510,
+    "cellH": 319,
+    "anchorX": 223.44,
+    "anchorY": 307.09,
+    "fps": 12.0,
+    "loop": false,
+    "upp": 0.0058823529411764705,
+    "hitFrac": 0.5
    }
   }
  },

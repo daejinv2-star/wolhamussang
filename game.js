@@ -19,8 +19,8 @@ const ENEMIES = {
   e1_grunt: { name: '졸개', kind: 'melee', hp: 30, speed: 2.3, range: 1.3, dmg: 6, cd: 1.5, windup: .4, score: 100, shadow: 1.0, body: 0.3 },
   e2_spearman: { name: '창병', kind: 'melee', hp: 36, speed: 1.9, range: 2.35, dmg: 9, cd: 2.1, windup: .5, score: 150, shadow: 1.05, body: 0.3 },
   e3_archer: { name: '궁수', kind: 'archer', hp: 22, speed: 2.2, range: 6, dmg: 7, cd: 2.6, windup: .55, score: 150, shadow: 1.0, body: 0.3 },
-  e4_brute: { name: '덩치', kind: 'melee', hp: 95, speed: 1.35, range: 1.75, dmg: 18, cd: 2.6, windup: .68, armor: true, heavy: true, score: 400, shadow: 1.7, body: 0.55 },
-  e5_assassin: { name: '자객', kind: 'assassin', hp: 28, speed: 3.9, range: 1.25, dmg: 5, cd: 1.7, windup: .2, score: 250, shadow: 1.0, body: 0.3 },
+  e4_brute: { name: '덩치', vr: 0.82, kind: 'melee', hp: 95, speed: 1.35, range: 1.75, dmg: 18, cd: 2.6, windup: .68, armor: true, heavy: true, score: 400, shadow: 1.7, body: 0.55 },
+  e5_assassin: { name: '자객', vr: 1.12, kind: 'assassin', hp: 28, speed: 3.9, range: 1.25, dmg: 5, cd: 1.7, windup: .2, score: 250, shadow: 1.0, body: 0.3 },
   boss_heukrang: { name: '흑랑', kind: 'boss', hp: 460, speed: 1.75, range: 2.7, dmg: 16, cd: 2.2, windup: .58, armor: true, heavy: true, score: 3000, shadow: 2.2, body: 0.7 },
 };
 const SEGS = [
@@ -42,9 +42,21 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0c1438, 9, 46);
 const camera = new THREE.PerspectiveCamera(32, 2, 0.1, 200);
 let halfW = 6;
+const QS = new URLSearchParams(location.search);
+const TOUCH = QS.has('touch') || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+// phones get the lighter sprite set and a lower render scale
+const MOBILE = !window.__ASSETS && (QS.has('m') || (TOUCH && !QS.has('hd') && Math.min(screen.width, screen.height) < 820));
+const CHAR_DIR = MOBILE ? 'assets/chars_m/' : 'assets/chars/';
+// logical stage size. A phone held sideways with rotation lock on still reports portrait, so the stage is turned 90 degrees instead of asking the player to change settings.
+const VIEW = { w: 1, h: 1, rot: false };
 function resize() {
-  const w = window.innerWidth, h = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const iw = window.innerWidth, ih = window.innerHeight;
+  VIEW.rot = TOUCH && ih > iw; VIEW.w = VIEW.rot ? ih : iw; VIEW.h = VIEW.rot ? iw : ih;
+  const st = $('#stage').style; st.width = VIEW.w + 'px'; st.height = VIEW.h + 'px'; st.transform = VIEW.rot ? 'rotate(90deg) translateY(-100%)' : 'none';
+  st.setProperty('--sw', VIEW.w / 100 + 'px'); st.setProperty('--sh', VIEW.h / 100 + 'px');
+  st.setProperty('--safeL', VIEW.rot ? 'env(safe-area-inset-top, 0px)' : 'env(safe-area-inset-left, 0px)'); st.setProperty('--safeR', VIEW.rot ? 'env(safe-area-inset-bottom, 0px)' : 'env(safe-area-inset-right, 0px)');
+  const w = VIEW.w, h = VIEW.h;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 2));
   renderer.setSize(w, h, false);
   const aspect = w / h;
   camera.aspect = aspect;
@@ -53,14 +65,15 @@ function resize() {
   const dist = Math.hypot(CAM.z, CAM.y - CAM.ty);
   halfW = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * dist * aspect;
 }
-window.addEventListener('resize', resize);
+window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 resize();
 
 // ---------------------------------------------------------------- textures
+const assetUrl = (u) => (window.__ASSETS && window.__ASSETS[u]) || u;
 const loader = new THREE.TextureLoader();
 const TEX = {};
 async function loadTex(key, url, opt = {}) {
-  const t = await loader.loadAsync(url);
+  const t = await loader.loadAsync(assetUrl(url));
   t.premultiplyAlpha = true;
   if (opt.sprite) { t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; }
   if (opt.repeat) { t.wrapS = opt.mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.wrapT = opt.mirror ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping; }
@@ -166,6 +179,7 @@ function audioInit() {
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
     AC.ctx = new C(); AC.master = AC.ctx.createGain(); AC.master.gain.value = 0.5; AC.master.connect(AC.ctx.destination);
     const len = AC.ctx.sampleRate; AC.noise = AC.ctx.createBuffer(1, len, len); const d = AC.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    loadSounds();
   }
   if (AC.ctx.state === 'suspended') AC.ctx.resume();
 }
@@ -179,16 +193,62 @@ function noise(dur, vol, f0, f1) {
   s.buffer = AC.noise; f.type = 'bandpass'; f.Q.value = 0.9; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + dur);
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); s.connect(f); f.connect(g); g.connect(AC.master); s.start(t, Math.random() * 0.5, dur + 0.05);
 }
+// recorded samples (hits, whooshes, voices); the synth above stays as a fallback while they load
+const SND = {};
+const SND_LIST = ['hit1', 'hit2', 'hit3', 'heavy', 'boom', 'land', 'swing1', 'swing2', 'whoosh', 'ui', 'power',
+  'h1_atk1', 'h1_atk2', 'h1_atk3', 'h1_hurt1', 'h1_hurt2', 'h1_down', 'h1_special', 'h1_jump', 'h2_atk1', 'h2_atk2', 'h2_atk3', 'h2_hurt1', 'h2_hurt2', 'h2_down', 'h2_special', 'h2_jump',
+  'en_hurt1', 'en_hurt2', 'en_hurt3', 'en_die1', 'en_die2', 'boss_intro', 'boss_atk', 'boss_hurt', 'boss_die'];
+function loadSounds() {
+  for (const n of SND_LIST) fetch(assetUrl('assets/audio/' + n + '.mp3')).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => b && AC.ctx.decodeAudioData(b)).then((buf) => { if (buf) SND[n] = buf; }).catch(() => {});
+}
+function play(name, vol = 1, rate = 1) {
+  const b = SND[name]; if (!b || !AC.ctx) return false;
+  const s = AC.ctx.createBufferSource(), g = AC.ctx.createGain(); s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol; s.connect(g); g.connect(AC.master); s.start(); return true;
+}
+const pick = (...a) => a[Math.floor(Math.random() * a.length)];
 const sfx = {
-  hit() { noise(.09, .55, 1900, 300); tone('sine', 170, 50, .12, .6); },
-  heavy() { noise(.18, .7, 1200, 120); tone('sine', 120, 35, .3, .8); },
-  swing() { noise(.12, .16, 700, 2600); },
-  hurt() { tone('square', 230, 90, .16, .22); noise(.08, .3, 900, 200); },
-  special() { tone('sawtooth', 80, 720, .55, .3); noise(.8, .55, 300, 3200); tone('sine', 60, 30, .9, .8); },
-  ui() { tone('triangle', 660, 990, .08, .2); },
-  arrow() { noise(.08, .14, 3000, 1200); },
-  warn() { tone('square', 440, 440, .18, .15); },
+  hit() { if (!play(pick('hit1', 'hit2', 'hit3'), .95, rand(.92, 1.1))) { noise(.09, .55, 1900, 300); tone('sine', 170, 50, .12, .6); } },
+  heavy() { if (!play('heavy', 1)) { noise(.18, .7, 1200, 120); tone('sine', 120, 35, .3, .8); } play('hit1', .8, .78); },
+  swing() { if (!play(pick('swing1', 'swing2'), .5, rand(.95, 1.25))) noise(.12, .16, 700, 2600); },
+  hurt() { if (!play('hit3', 1, .88)) { tone('square', 230, 90, .16, .22); noise(.08, .3, 900, 200); } },
+  special() { if (!play('boom', 1)) { tone('sawtooth', 80, 720, .55, .3); noise(.8, .55, 300, 3200); tone('sine', 60, 30, .9, .8); } },
+  ui() { if (!play('ui', .8)) tone('triangle', 660, 990, .08, .2); },
+  arrow() { if (!play('swing1', .4, 1.6)) noise(.08, .14, 3000, 1200); },
+  warn() { if (!play('power', .7)) tone('square', 440, 440, .18, .15); },
+  land() { play('land', .7); }, jump() { play('whoosh', .45, 1.35); },
 };
+// voices: random pick from the given names, with a chance and a minimum gap so shouts do not machine-gun
+const vLast = {};
+function voice(names, chance = 1, gap = 0.12, vol = 1, rate = 1) {
+  if (Math.random() > chance) return; const list = [].concat(names).sort(() => Math.random() - 0.5);
+  const key = list[0].replace(/\d+$/, ''), t = now(); if (t - (vLast[key] || -9) < gap) return;
+  for (const n of list) if (play(n, vol, rate * rand(.97, 1.04))) { vLast[key] = t; return; }
+}
+const hv = (s) => G.heroId.slice(0, 2) + '_' + s;
+// background music through the same master gain (so the mute button and phone volume behave the same way)
+const BGM = { el: {}, gain: {}, cur: null };
+function bgm(name) {
+  if (BGM.cur === name || !AC.ctx) return; const t = AC.ctx.currentTime, old = BGM.cur; BGM.cur = name;
+  if (old && BGM.el[old]) { const g = BGM.gain[old], el = BGM.el[old]; if (g) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + 0.7); } setTimeout(() => { if (BGM.cur !== old) el.pause(); }, 800); }
+  if (!name) return;
+  const el = bgmEl(name);
+  try { el.currentTime = 0; } catch (e) { /* not seekable yet */ }
+  el.play().catch(() => {});
+  const g = BGM.gain[name]; if (g) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5, t + 0.8); }
+}
+function bgmEl(name) {
+  let el = BGM.el[name];
+  if (!el) {
+    el = BGM.el[name] = new Audio(assetUrl('assets/audio/' + name + '.mp3')); el.loop = true; el.preload = 'auto';
+    try { const src = AC.ctx.createMediaElementSource(el), g = AC.ctx.createGain(); g.gain.value = 0; src.connect(g); g.connect(AC.master); BGM.gain[name] = g; } catch (e) { el.volume = 0.4; }
+  }
+  return el;
+}
+// phones only allow audio that was started inside a tap: start the later track silently now so it can be switched to freely
+function primeBgm(name) { if (!AC.ctx || BGM.el[name]) return; const el = bgmEl(name); const p = el.play(); if (p && p.then) p.then(() => { if (BGM.cur !== name) el.pause(); }).catch(() => {}); }
+let muted = false;
+function setMute(m) { muted = m; if (AC.master) AC.master.gain.value = m ? 0 : 0.5; const b = $('#mute'); if (b) b.textContent = m ? '소리 끔' : '소리 켬'; }
+document.addEventListener('visibilitychange', () => { if (!AC.ctx) return; if (document.hidden) { AC.ctx.suspend(); if (BGM.cur) BGM.el[BGM.cur].pause(); } else { AC.ctx.resume(); if (BGM.cur) BGM.el[BGM.cur].play().catch(() => {}); } });
 
 // ---------------------------------------------------------------- fx
 const particles = [];
@@ -299,13 +359,14 @@ class Actor {
 }
 
 // ---------------------------------------------------------------- input
-const input = { x: 0, y: 0, attackAt: -9, specialAt: -9, keys: {} };
+const input = { x: 0, y: 0, attackAt: -9, specialAt: -9, jumpAt: -9, keys: {} };
 const now = () => performance.now() / 1000;
 function consume(k) { const key = k + 'At'; if (now() - input[key] < 0.22) { input[key] = -9; return true; } return false; }
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return; input.keys[e.code] = true; audioInit();
   if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) { if (input.lastDir === e.code && now() - input.lastDirAt < 0.3) input.runKey = e.code; input.lastDir = e.code; input.lastDirAt = now(); }
-  if (e.code === 'KeyJ' || e.code === 'KeyZ' || e.code === 'Space') input.attackAt = now();
+  if (e.code === 'KeyJ' || e.code === 'KeyZ') input.attackAt = now();
+  if (e.code === 'Space' || e.code === 'KeyL' || e.code === 'KeyC') input.jumpAt = now();
   if (e.code === 'KeyK' || e.code === 'KeyX') input.specialAt = now();
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
 });
@@ -319,14 +380,27 @@ function readKeys() {
 (function touchSetup() {
   const zone = $('#joyzone'), joy = $('#joy'), knob = $('#knob'); let id = null, ox = 0, oy = 0;
   const R = 52;
-  zone.addEventListener('touchstart', (e) => { audioInit(); const t = e.changedTouches[0]; id = t.identifier; const r = zone.getBoundingClientRect(); ox = t.clientX; oy = t.clientY; joy.style.left = (ox - r.left) + 'px'; joy.style.top = (oy - r.top) + 'px'; input.touchMove = true; e.preventDefault(); }, { passive: false });
-  zone.addEventListener('touchmove', (e) => { for (const t of e.changedTouches) if (t.identifier === id) { let dx = t.clientX - ox, dy = t.clientY - oy; const m = Math.hypot(dx, dy); if (m > R) { dx *= R / m; dy *= R / m; } knob.style.transform = `translate(${dx}px,${dy}px)`; input.x = dx / R; input.y = dy / R; } e.preventDefault(); }, { passive: false });
+  // touch point in stage coordinates (the stage may be rotated)
+  const local = (t) => (VIEW.rot ? { x: t.clientY, y: window.innerWidth - t.clientX } : { x: t.clientX, y: t.clientY });
+  zone.addEventListener('touchstart', (e) => { audioInit(); const t = e.changedTouches[0]; id = t.identifier; const p = local(t); ox = p.x; oy = p.y; joy.style.left = ox + 'px'; joy.style.top = (oy - VIEW.h * 0.28) + 'px'; input.touchMove = true; e.preventDefault(); }, { passive: false });
+  zone.addEventListener('touchmove', (e) => { for (const t of e.changedTouches) if (t.identifier === id) { const p = local(t); let dx = p.x - ox, dy = p.y - oy; const m = Math.hypot(dx, dy); if (m > R) { dx *= R / m; dy *= R / m; } knob.style.transform = `translate(${dx}px,${dy}px)`; input.x = dx / R; input.y = dy / R; } e.preventDefault(); }, { passive: false });
   const end = (e) => { for (const t of e.changedTouches) if (t.identifier === id) { id = null; input.x = 0; input.y = 0; input.touchMove = false; knob.style.transform = ''; } };
   zone.addEventListener('touchend', end); zone.addEventListener('touchcancel', end);
-  const bind = (el, key) => { const dn = (e) => { audioInit(); input[key] = now(); el.classList.add('on'); e.preventDefault(); }; const up = () => el.classList.remove('on'); el.addEventListener('touchstart', dn, { passive: false }); el.addEventListener('touchend', up); el.addEventListener('mousedown', dn); el.addEventListener('mouseup', up); };
-  bind($('#btnA'), 'attackAt'); bind($('#btnS'), 'specialAt');
-  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) $('#touch').style.display = 'block';
+  const bind = (el, key) => { const dn = (e) => { audioInit(); input[key] = now(); el.classList.add('on'); e.preventDefault(); }; const up = () => el.classList.remove('on'); el.addEventListener('touchstart', dn, { passive: false }); el.addEventListener('touchend', up); el.addEventListener('touchcancel', up); el.addEventListener('mousedown', dn); el.addEventListener('mouseup', up); };
+  bind($('#btnA'), 'attackAt'); bind($('#btnS'), 'specialAt'); bind($('#btnJ'), 'jumpAt');
+  $('#mute').addEventListener('click', () => { audioInit(); setMute(!muted); }); $('#mute').addEventListener('touchstart', (e) => { audioInit(); setMute(!muted); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  if (TOUCH) {
+    $('#hint').textContent = '왼쪽 화면을 눌러 이동(끝까지 밀면 달리기) · 오른쪽 버튼으로 공격, 점프, 필살 · 달리며 공격 = 돌진 베기';
+    // stop page scroll, pinch zoom and long-press menus while playing
+    document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturestart', (e) => e.preventDefault()); document.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
 })();
+// Android: go fullscreen and lock landscape on the first tap (ignored where unsupported, e.g. iPhone)
+function goFullscreen() {
+  if (!TOUCH) return; const el = document.documentElement;
+  try { const p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : null; if (p && p.then) p.then(() => { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); }).catch(() => {}); } catch (e) { /* not available */ }
+}
 
 // ---------------------------------------------------------------- game state
 const G = { state: 'title', t: 0, freeze: 0, paused: false, shake: 0, zoom: 1, zoomT: 1, camX: STAGE_START, enemies: [], shots: [], timers: [], tokens: 0, seg: 0, segState: 'travel', wave: 0, spawnQ: [], combo: 0, comboT: 0, score: 0, time: 0, heroId: 'h1_mujin', player: null, endT: 0, bossRef: null };
@@ -338,26 +412,46 @@ function clearActors() {
   if (G.player) { G.player.dispose(); G.player = null; }
   G.timers.length = 0; G.spawnQ.length = 0;
 }
-async function loadChar(cid) {
-  const files = new Set(Object.values(CHARS[cid].anims).map((a) => a.file));
-  await Promise.all([...files].filter((f) => !TEX['chr_' + f]).map((f) => loadTex('chr_' + f, 'assets/chars/' + f, { sprite: true })));
+const charLoads = {}, charDone = {};
+function loadChar(cid) {
+  return (charLoads[cid] ??= (async () => {
+    const files = new Set(Object.values(CHARS[cid].anims).map((a) => a.file));
+    await Promise.all([...files].filter((f) => !TEX['chr_' + f]).map((f) => loadTex('chr_' + f, CHAR_DIR + f, { sprite: true })));
+    charDone[cid] = true;
+  })());
 }
 async function startGame(heroId) {
-  audioInit(); sfx.ui();
+  audioInit(); sfx.ui(); goFullscreen(); bgm('bgm_stage'); primeBgm('bgm_boss');
   $('#loading').style.display = 'flex'; await loadChar(heroId); $('#loading').style.display = 'none';
   clearActors();
   G.heroId = heroId; const hero = HEROES[heroId];
   const p = new Actor(heroId, hero, true); p.x = 3; p.z = -0.3; p.gauge = 100; p.step = 0; G.player = p;
   Object.assign(G, { state: 'play', seg: 0, segState: 'travel', wave: 0, combo: 0, comboT: 0, score: 0, time: 0, camX: STAGE_START, tokens: 0, freeze: 0, paused: false, endT: 0, bossRef: null, zoomT: 1 });
-  $('#title').style.display = 'none'; $('#clear').style.display = 'none'; $('#over').style.display = 'none'; $('#hud').style.display = 'block'; $('#boss').style.display = 'none'; $('#go').style.display = 'none';
-  $('#face').style.backgroundImage = `url(assets/ui/${hero.face})`; $('#pname').innerHTML = `${hero.name}<small>${hero.sub}</small>`;
-  message('제1막 흑랑 고개', 1800);
+  $('#title').style.display = 'none'; $('#clear').style.display = 'none'; $('#over').style.display = 'none'; $('#hud').style.display = 'block'; $('#touch').style.display = TOUCH ? 'block' : 'none'; $('#boss').style.display = 'none'; $('#go').style.display = 'none';
+  $('#face').style.backgroundImage = `url(${assetUrl('assets/ui/' + hero.face)})`; $('#pname').innerHTML = `${hero.name}<small>${hero.sub}</small>`;
+  message('제1막 흑랑 고개', 1800); bgm('bgm_stage');
 }
 function message(txt, ms) { const m = $('#msg'); m.textContent = txt; m.style.transition = 'none'; m.style.opacity = 1; setTimeout(() => { m.style.transition = 'opacity .5s'; m.style.opacity = 0; }, ms); }
 
 // ---------------------------------------------------------------- combat
+const JUMP_V = 9.8, JUMP_G = 27;
+function startJump(p) {
+  p.jumpRun = p.state === 'run'; p.state = 'jump'; p.stateT = 0; p.vy = JUMP_V; p.y = 0.01; p.airAtk = false; p.airHit = false; p.setAnim('jump');
+  sfx.jump(); voice(hv('jump'), .7); ring(p.x, p.z, 0xcfd8ff, 1.6);
+}
+function airStrike(p) {
+  const hero = p.def; let any = false; const reach = hero.combo[0].range + 0.5;
+  for (const e of G.enemies) {
+    if (!e.alive || e.state === 'down' || e.state === 'getup') continue;
+    const d = (e.x - p.x) * p.facing;
+    if (d > -0.6 && d < reach + e.def.body && Math.abs(e.z - p.z) < 0.95) { hitEnemy(e, 14, p.facing, true, 4.5, false); any = true; }
+  }
+  slashArc(p.x + p.facing * reach * 0.5, p.y + 0.9, p.z + 0.05, p.facing, hero.color, 1.5, 1);
+  if (any) { hitstop(.12); shake(.3); sfx.heavy(); }
+}
 function startAttack(p, step, dash) {
   p.step = step; p.state = 'attack'; p.stateT = 0; p.didHit = false; p.queued = false; p.dash = !!dash; p.setAnim('atk' + (step + 1)); sfx.swing();
+  if (dash || step === 2) voice(hv('atk3')); else voice(hv('atk' + (step + 1)), .6);
   const a = p.def.combo[step], an = p.meta.anims['atk' + (step + 1)];
   p.atk = an && an.hitFrac ? Object.assign({}, a, { hitAt: an.hitFrac * a.dur }) : a;
 }
@@ -383,6 +477,7 @@ function hitEnemy(e, dmg, dir, down, kb, special) {
   comboPop();
   if (e.hasToken) { e.hasToken = false; G.tokens--; }
   if (e.hp <= 0) {
+    if (e.def.kind === 'boss') voice('boss_die'); else voice(['en_die1', 'en_die2'], .9, .12, .9, e.def.vr || 1);
     e.alive = false; e.state = 'down'; e.stateT = 0; e.dying = true; e.kbV = dir * (kb + 4.5); e.facing = -dir; e.vy = special ? 9 : 7.5; e.bounced = false; e.setAnim('down'); G.score += e.def.score;
     if (!G.enemies.some((o) => o.alive) && !G.spawnQ.length) { G.slow = Math.max(G.slow || 0, .5); G.zoomT = .92; after(.22, () => { G.zoomT = 1; }); }
     if (e.def.kind === 'boss') { G.freeze = 0; G.slow = 1.6; sfx.heavy(); screenFlash('#fff', .8, 500); shake(.7); }
@@ -390,25 +485,29 @@ function hitEnemy(e, dmg, dir, down, kb, special) {
   }
   if (e.def.kind === 'boss') {
     e.stagger = (e.stagger || 0) + dmg;
-    if (special || e.stagger >= 70) { e.stagger = 0; e.setState('hurt'); e.hurtDur = special ? .8 : .5; e.kbV = dir * 2.5; e.setAnim('hurt'); }
+    if (special || e.stagger >= 70) { voice('boss_hurt', 1, .8); e.stagger = 0; e.setState('hurt'); e.hurtDur = special ? .8 : .5; e.kbV = dir * 2.5; e.setAnim('hurt'); }
     return;
   }
+  voice(['en_hurt1', 'en_hurt2', 'en_hurt3'], .75, .16, .85, e.def.vr || 1);
   if (down) { e.setState('down'); e.stateT = 0; e.kbV = dir * (kb + 1); e.facing = -dir; e.vy = special ? 8.5 : 6.5; e.bounced = false; e.setAnim('down'); }
   else if (e.def.armor && (e.state === 'windup' || e.state === 'strike')) { /* armored during its attack */ }
   else { e.state = 'hurt'; e.stateT = 0; e.hurtDur = .36; e.kbV = dir * kb; e.facing = -dir; e.setAnim('hurt'); }
 }
 function hurtPlayer(dmg, dir, down) {
   const p = G.player; if (!p || p.invuln > 0 || p.state === 'special' || p.state === 'down' || p.state === 'getup' || p.state === 'dead') return false;
+  if (p.y > 0.9) return false; // jumped over it
+  if (p.state === 'jump') { down = true; p.y = 0; p.vy = 0; }
   p.hp = Math.max(0, p.hp - dmg); p.flash = 1; p.hitJit = 1; p.mat.uniforms.flashColor.value.setRGB(1, .25, .2); sfx.hurt(); shake(down ? .5 : .32); hitstop(down ? .14 : .09); screenFlash('#ff2a1a', .26, 220);
   spawnP(TEX.spark, 0xffffff, p.x, 1.2, p.z + 0.09, { max: .1, s0: 3, s1: .8 });
   sparks(p.x, 1.2, p.z + 0.08, 0xff5544, 5, 4); G.combo = 0; comboPop();
+  if (p.hp <= 0 || down) voice(hv('down')); else voice([hv('hurt1'), hv('hurt2')]);
   if (p.hp <= 0 || down) { p.state = 'down'; p.stateT = 0; p.kbV = dir * 5.5; p.facing = -dir; p.vy = 6.5; p.bounced = false; p.setAnim('down'); }
   else { p.state = 'hurt'; p.stateT = 0; p.kbV = dir * 3.6; p.setAnim('hurt'); }
   return true;
 }
 function startSpecial(p) {
   const hero = p.def; p.state = 'special'; p.stateT = 0; p.gauge = 0; p.spFired = false; p.setAnim('special');
-  const sa = p.meta.anims.special; p.spDur = sa ? 1.2 : 0.8; p.spAt = sa && sa.hitFrac ? sa.hitFrac * p.spDur : 0.1; G.paused = true; G.zoomT = 0.86; sfx.warn();
+  const sa = p.meta.anims.special; p.spDur = sa ? 1.2 : 0.8; p.spAt = sa && sa.hitFrac ? sa.hitFrac * p.spDur : 0.1; G.paused = true; G.zoomT = 0.86; sfx.warn(); setTimeout(() => voice(hv('special')), 260);
   showCutin({ img: hero.cutin, pos: hero.cutPos, skillImg: hero.skillImg, name: hero.name, quote: hero.quote, css: hero.css }, () => { G.paused = false; });
 }
 function fireSpecial(p) {
@@ -425,7 +524,7 @@ function airPhysics(a, dt) {
 }
 function dmgNum(x, y, z, val, big) {
   const v = new THREE.Vector3(x, y, z).project(camera); const el = document.createElement('div'); el.className = 'dn' + (big ? ' big' : ''); el.textContent = val;
-  el.style.left = ((v.x * 0.5 + 0.5) * window.innerWidth + rand(-14, 14)) + 'px'; el.style.top = ((-v.y * 0.5 + 0.5) * window.innerHeight) + 'px';
+  el.style.left = ((v.x * 0.5 + 0.5) * VIEW.w + rand(-14, 14)) + 'px'; el.style.top = ((-v.y * 0.5 + 0.5) * VIEW.h) + 'px';
   $('#hud').appendChild(el); el.addEventListener('animationend', () => el.remove());
 }
 function comboPop() { const c = $('#combo'); if (G.combo >= 2) { c.innerHTML = `${G.combo}<small>HIT</small>`; c.style.opacity = 1; c.style.transition = 'none'; c.style.transform = 'scale(1.35)'; requestAnimationFrame(() => { c.style.transition = 'transform .15s'; c.style.transform = 'scale(1)'; }); } else c.style.opacity = 0; }
@@ -444,8 +543,28 @@ function updatePlayer(p, dt) {
         const s = run ? 'run' : 'walk'; if (p.state !== s) { p.state = s; p.stateT = 0; } p.setAnim(s);
         if (run && Math.floor(p.stateT * 9) !== Math.floor((p.stateT - dt) * 9)) spawnP(TEX.spark, 0x9aa4d8, p.x - p.facing * 0.35, 0.12, p.z, { max: .4, s0: .3, s1: 1.0, a0: .32, vy: .7 });
       } else { if (p.state !== 'idle') { p.state = 'idle'; p.stateT = 0; } p.setAnim('idle'); }
+      if (consume('jump')) { startJump(p); break; }
       if (consume('special')) { if (p.gauge >= 100) startSpecial(p); }
       else if (consume('attack')) { const dash = p.state === 'run'; startAttack(p, dash ? 2 : 0, dash); }
+      break;
+    }
+    case 'jump': {
+      const mx = input.x, mz = input.y, mag = Math.hypot(mx, mz);
+      if (mag > 0.18) { const n = Math.min(1, mag) / mag, sp = p.def.speed * (p.jumpRun ? 1.65 : 0.95); p.x += mx * n * sp * dt; p.z += mz * n * sp * 0.5 * dt; if (!p.airAtk && Math.abs(mx) > 0.2) p.facing = mx > 0 ? 1 : -1; }
+      p.vy -= JUMP_G * dt; p.y += p.vy * dt;
+      if (!p.airAtk) {
+        p.animProgress = clamp(p.stateT / (2 * JUMP_V / JUMP_G), 0, 0.99);
+        if (consume('attack')) { // air attack: finish the jump with the slash frames
+          p.airAtk = true; p.airHit = false; if (p.vy < 3.6) p.vy = 3.6; p.setAnim('jumpatk');
+          const ja = p.meta.anims.jumpatk, hf = ja && ja.hitFrac ? ja.hitFrac : 0.4;
+          p.airT0 = p.stateT; p.airR = (p.vy + Math.sqrt(p.vy * p.vy + 2 * JUMP_G * Math.max(0, p.y))) / JUMP_G; p.airP0 = Math.max(0.1, hf - 0.24); p.airHitP = hf;
+          sfx.swing(); voice(hv('atk2'));
+        }
+      } else {
+        p.animProgress = clamp(p.airP0 + (1 - p.airP0) * (p.stateT - p.airT0) / p.airR, 0, 0.99);
+        if (!p.airHit && p.animProgress >= p.airHitP) { p.airHit = true; airStrike(p); }
+      }
+      if (p.y <= 0 && p.vy < 0) { p.y = 0; p.vy = 0; p.state = 'idle'; p.stateT = 0; p.setAnim('idle'); sfx.land(); ring(p.x, p.z, 0xcfd8ff, 1.9); }
       break;
     }
     case 'attack': {
@@ -502,7 +621,7 @@ function updateEnemy(e, dt) {
         if (def.kind === 'boss' && e.chargeT <= 0 && adx > 3.2 && Math.abs(dz) < 1.2) { release(e); e.setState('chargeWind'); e.setAnim(e.meta.anims.atk2 ? 'atk2' : 'windup'); sfx.warn(); break; }
         if (e.hasToken) {
           moved = moveToward(e, p.x + side * reach, p.z, spd, dt);
-          if (adx <= def.range * 0.97 && Math.abs(dz) < 0.42) { e.setState('windup'); e.setAnim('attack'); e.windT = def.windup * (rage ? .75 : 1); }
+          if (adx <= def.range * 0.97 && Math.abs(dz) < 0.42) { e.setState('windup'); e.setAnim('attack'); e.windT = def.windup * (rage ? .75 : 1); if (def.kind === 'boss') voice('boss_atk', .6, 2.5); }
         } else moved = moveToward(e, p.x + side * (def.range + 1.5 + e.orbit), clamp(p.z + e.zOff, Z_MIN, Z_MAX), spd * 0.8, dt);
         if (def.kind === 'boss') e.chargeT -= dt;
       }
@@ -593,11 +712,11 @@ function updateDirector(dt) {
   if (G.segState === 'travel') {
     if (G.camX >= seg.lockX - 0.08) {
       G.segState = 'fight'; G.wave = 0; $('#go').style.display = 'none';
-      if (seg.boss) { G.paused = true; sfx.warn(); message('WARNING', 900); setTimeout(() => showCutin({ img: 'cutin_boss_heukrang.jpg', pos: '50% 36%', skillImg: 'name_heukrang.webp', name: '흑랑', quote: '감히 내 산채에 발을 들여?', css: '#b48cff' }, () => { G.paused = false; queueWave(seg.waves[0]); $('#boss').style.display = 'block'; }), 700); }
+      if (seg.boss) { G.paused = true; sfx.warn(); message('WARNING', 900); bgm('bgm_boss'); setTimeout(() => { voice('boss_intro'); showCutin({ img: 'cutin_boss_heukrang.jpg', pos: '50% 36%', skillImg: 'name_heukrang.webp', name: '흑랑', quote: '감히 내 산채에 발을 들여?', css: '#b48cff' }, () => { G.paused = false; queueWave(seg.waves[0]); $('#boss').style.display = 'block'; }); }, 700); }
       else queueWave(seg.waves[0]);
     }
   } else if (G.segState === 'fight') {
-    for (let i = G.spawnQ.length - 1; i >= 0; i--) { const q = G.spawnQ[i]; q.t -= dt; if (q.t <= 0) { spawnEnemy(q.id, q.side, q.i); G.spawnQ.splice(i, 1); } }
+    for (let i = G.spawnQ.length - 1; i >= 0; i--) { const q = G.spawnQ[i]; q.t -= dt; if (q.t <= 0) { if (!charDone[q.id]) { loadChar(q.id); continue; } spawnEnemy(q.id, q.side, q.i); G.spawnQ.splice(i, 1); } }
     const b = G.bossRef;
     if (b && b.alive && !b.adds && b.hp < b.maxHp * 0.5) { b.adds = true; message('졸개들이 몰려온다!', 1100); queueWave(['e1_grunt', 'e5_assassin', 'e1_grunt']); }
     if (!G.spawnQ.length && !G.enemies.length) {
@@ -612,8 +731,8 @@ function queueWave(list) { list.forEach((id, i) => G.spawnQ.push({ id, side: ENE
 
 // ---------------------------------------------------------------- cut-in
 function showCutin(o, done) {
-  const el = $('#cutin'); el.querySelector('.img').style.backgroundImage = `url(assets/ui/${o.img})`; el.querySelector('.img').style.backgroundPosition = o.pos;
-  el.querySelector('.skill').src = 'assets/ui/' + o.skillImg; el.querySelector('.quote').innerHTML = `<b style="color:${o.css}">${o.name}</b>「${o.quote}」`;
+  const el = $('#cutin'); el.querySelector('.img').style.backgroundImage = `url(${assetUrl('assets/ui/' + o.img)})`; el.querySelector('.img').style.backgroundPosition = o.pos;
+  el.querySelector('.skill').src = assetUrl('assets/ui/' + o.skillImg); el.querySelector('.quote').innerHTML = `<b style="color:${o.css}">${o.name}</b>「${o.quote}」`;
   el.querySelector('.band').style.borderColor = o.css;
   el.style.display = 'block'; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
   setTimeout(() => { el.style.display = 'none'; el.classList.remove('on'); done(); }, 1250);
@@ -630,12 +749,12 @@ function updateHud() {
   if (G.bossRef) setBar('#bosshp', Math.max(0, G.bossRef.hp) / G.bossRef.maxHp);
 }
 function endGame(kind) {
-  G.state = kind; $('#hud').style.display = 'none';
+  G.state = kind; $('#hud').style.display = 'none'; $('#touch').style.display = 'none'; bgm(null);
   if (kind === 'clear') { const t = Math.floor(G.time); $('#clearres').innerHTML = `점수 <b>${G.score}</b><br>시간 ${Math.floor(t / 60)}분 ${t % 60}초 · 남은 체력 ${Math.round(G.player.hp)}`; $('#clear').style.display = 'flex'; }
   else $('#over').style.display = 'flex';
 }
 document.querySelectorAll('.card').forEach((c) => c.addEventListener('click', () => startGame(c.dataset.hero)));
-document.querySelectorAll('.pbtn').forEach((b) => b.addEventListener('click', () => { if (b.dataset.act === 'retry') startGame(G.heroId); else { clearActors(); G.state = 'title'; G.camX = STAGE_START; $('#clear').style.display = 'none'; $('#over').style.display = 'none'; $('#hud').style.display = 'none'; $('#title').style.display = 'flex'; } }));
+document.querySelectorAll('.pbtn').forEach((b) => b.addEventListener('click', () => { if (b.dataset.act === 'retry') startGame(G.heroId); else { clearActors(); bgm(null); G.state = 'title'; G.camX = STAGE_START; $('#clear').style.display = 'none'; $('#over').style.display = 'none'; $('#hud').style.display = 'none'; $('#title').style.display = 'flex'; } }));
 
 // ---------------------------------------------------------------- loop
 function update(dt) {
@@ -687,16 +806,19 @@ function frame(t) {
 
 // ---------------------------------------------------------------- boot
 (async function boot() {
-  [CHARS, PROPS, LAYERS] = await Promise.all(['assets/chars/chars.json', 'assets/bg/props.json', 'assets/bg/layers.json'].map((u) => fetch(u).then((r) => r.json())));
+  [CHARS, PROPS, LAYERS] = await Promise.all([CHAR_DIR + 'chars.json', 'assets/bg/props.json', 'assets/bg/layers.json'].map((u) => fetch(assetUrl(u)).then((r) => r.json())));
   const jobs = [loadTex('ground', 'assets/bg/ground.jpg', { repeat: true })];
   for (const id of Object.keys(PROPS)) jobs.push(loadTex(id, `assets/bg/${id}.png`));
   for (const id of Object.keys(LAYERS)) jobs.push(loadTex(id, `assets/bg/${LAYERS[id].file}`, id === 'far_ridge' ? { repeat: true, mirror: true } : {}));
-  for (const cid of Object.keys(CHARS)) if (!HEROES[cid]) jobs.push(loadChar(cid));
+  // only the first fight's enemies block the start; the rest stream in while the player is on the title screen
+  for (const cid of SEGS[0].waves.flat()) jobs.push(loadChar(cid));
+  let doneN = 0; jobs.forEach((j) => j.then(() => { doneN++; $('#loading').textContent = '불러오는 중… ' + Math.round(doneN / jobs.length * 100) + '%'; }));
   await Promise.all(jobs);
-  sky = document.createElement('div'); sky.style.cssText = 'position:absolute;left:0;top:0;width:114%;height:100%;background:#070a1e url(assets/bg/bg_far.jpg) center top/cover no-repeat;will-change:transform';
+  (async () => { for (const cid of Object.keys(CHARS)) if (!HEROES[cid]) await loadChar(cid).catch(() => {}); })();
+  sky = document.createElement('div'); sky.style.cssText = 'position:absolute;left:0;top:0;width:114%;height:100%;background:#070a1e url(' + assetUrl('assets/bg/bg_far.jpg') + ') center top/cover no-repeat;will-change:transform';
   $('#stage').insertBefore(sky, canvas); canvas.style.position = 'relative';
   buildWorld();
   $('#loading').style.display = 'none';
-  window.__G = G; window.__startGame = startGame; window.__input = input;
+  window.__G = G; window.__startGame = startGame; window.__input = input; window.__VIEW = VIEW; window.__charDone = charDone; window.__SND = SND; window.__BGM = BGM; window.__AC = AC;
   requestAnimationFrame(frame);
 })().catch((e) => { $('#loading').textContent = '불러오기 실패: ' + e.message; console.error(e); });
