@@ -195,7 +195,7 @@ function noise(dur, vol, f0, f1) {
 }
 // recorded samples (hits, whooshes, voices); the synth above stays as a fallback while they load
 const SND = {};
-const SND_LIST = ['hit1', 'hit2', 'hit3', 'heavy', 'boom', 'land', 'swing1', 'swing2', 'whoosh', 'ui', 'power',
+const SND_LIST = ['pickup', 'hit1', 'hit2', 'hit3', 'heavy', 'boom', 'land', 'swing1', 'swing2', 'whoosh', 'ui', 'power',
   'h1_atk1', 'h1_atk2', 'h1_atk3', 'h1_hurt1', 'h1_hurt2', 'h1_down', 'h1_special', 'h1_jump', 'h2_atk1', 'h2_atk2', 'h2_atk3', 'h2_hurt1', 'h2_hurt2', 'h2_down', 'h2_special', 'h2_jump',
   'en_hurt1', 'en_hurt2', 'en_hurt3', 'en_die1', 'en_die2', 'boss_intro', 'boss_atk', 'boss_hurt', 'boss_die'];
 function loadSounds() {
@@ -366,8 +366,8 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return; input.keys[e.code] = true; audioInit();
   if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) { if (input.lastDir === e.code && now() - input.lastDirAt < 0.3) input.runKey = e.code; input.lastDir = e.code; input.lastDirAt = now(); }
   if (e.code === 'KeyJ' || e.code === 'KeyZ') input.attackAt = now();
-  if (e.code === 'Space' || e.code === 'KeyL' || e.code === 'KeyC') input.jumpAt = now();
-  if (e.code === 'KeyK' || e.code === 'KeyX') input.specialAt = now();
+  if (e.code === 'KeyX' || e.code === 'KeyL' || e.code === 'KeyC') input.jumpAt = now();
+  if (e.code === 'Space' || e.code === 'KeyK') input.specialAt = now();
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
 });
 window.addEventListener('keyup', (e) => { input.keys[e.code] = false; if (input.runKey === e.code) input.runKey = null; });
@@ -403,10 +403,42 @@ function goFullscreen() {
 }
 
 // ---------------------------------------------------------------- game state
-const G = { state: 'title', t: 0, freeze: 0, paused: false, shake: 0, zoom: 1, zoomT: 1, camX: STAGE_START, enemies: [], shots: [], timers: [], tokens: 0, seg: 0, segState: 'travel', wave: 0, spawnQ: [], combo: 0, comboT: 0, score: 0, time: 0, heroId: 'h1_mujin', player: null, endT: 0, bossRef: null };
+const G = { items: [], state: 'title', t: 0, freeze: 0, paused: false, shake: 0, zoom: 1, zoomT: 1, camX: STAGE_START, enemies: [], shots: [], timers: [], tokens: 0, seg: 0, segState: 'travel', wave: 0, spawnQ: [], combo: 0, comboT: 0, score: 0, time: 0, heroId: 'h1_mujin', player: null, endT: 0, bossRef: null };
 const after = (t, fn) => G.timers.push({ t, fn });
 
+// ---------------------------------------------------------------- food pickups (restore HP)
+const FOODS = { food_rice: { heal: 20, w: 0.8 }, food_bun: { heal: 35, w: 0.95 }, food_meat: { heal: 70, w: 1.15 } };
+const DROPS = { e1_grunt: [0.2, 'food_rice'], e2_spearman: [0.2, 'food_rice'], e3_archer: [0.25, 'food_rice'], e5_assassin: [0.3, 'food_bun'], e4_brute: [1, 'food_bun'] };
+let ITEMS_META = {};
+function spawnFood(id, x, z, pop) {
+  const f = FOODS[id], m = ITEMS_META[id]; const w = f.w, h = w * m.h / m.w;
+  const mesh = new THREE.Mesh(QUAD, flatMat(TEX[id], { fog: false })); mesh.scale.set(w, h, 1); mesh.renderOrder = 1; scene.add(mesh);
+  const glow = new THREE.Mesh(QUAD, addMat(TEX.spark, 0xffe39a)); glow.scale.set(w * 1.7, w * 0.6, 1); glow.rotation.x = -Math.PI / 2; glow.renderOrder = 0; scene.add(glow);
+  const it = { id, x, z, y: pop ? 0.7 : 0, vy: pop ? 5 : 0, h, mesh, glow, life: 0, t: Math.random() * 6 };
+  G.items.push(it); return it;
+}
+function removeFood(i) { const it = G.items[i]; scene.remove(it.mesh); scene.remove(it.glow); it.mesh.material.dispose(); it.glow.material.dispose(); G.items.splice(i, 1); }
+function updateItems(dt) {
+  const p = G.player;
+  for (let i = G.items.length - 1; i >= 0; i--) {
+    const it = G.items[i]; it.life += dt; it.t += dt;
+    if (it.vy || it.y > 0) { it.vy -= 22 * dt; it.y += it.vy * dt; if (it.y <= 0) { it.y = 0; it.vy = Math.abs(it.vy) > 2 ? -it.vy * 0.35 : 0; } }
+    const bob = it.vy === 0 && it.y === 0 ? 0.04 + Math.sin(it.t * 4) * 0.04 : 0;
+    it.mesh.position.set(it.x, it.y + bob + it.h / 2, it.z + 0.02); it.glow.position.set(it.x, 0.03, it.z);
+    it.glow.material.opacity = 0.45 + 0.25 * Math.sin(it.t * 6);
+    const fading = it.life > 18; it.mesh.visible = !fading || Math.floor(it.t * 8) % 2 === 0;
+    if (it.life > 22) { removeFood(i); continue; }
+    if (p && !['down', 'getup', 'dead', 'special'].includes(p.state) && p.y < 0.7 && Math.abs(p.x - it.x) < 0.8 && Math.abs(p.z - it.z) < 0.55 && it.y < 0.3) {
+      const heal = Math.min(FOODS[it.id].heal, p.maxHp - p.hp); p.hp += heal; G.score += heal > 0 ? 100 : 500;
+      p.flash = 0.8; p.mat.uniforms.flashColor.value.setRGB(0.5, 1, 0.55);
+      healNum(p.x, 2.1, p.z, heal > 0 ? '+' + Math.round(heal) : '+500');
+      for (let k = 0; k < 10; k++) spawnP(TEX.spark, 0x9dff9a, p.x + rand(-.4, .4), rand(.3, 1.6), p.z + 0.05, { max: rand(.4, .7), vy: rand(1.5, 3.5), s0: rand(.25, .45), s1: .05 });
+      if (!play('pickup', .9)) tone('triangle', 660, 1320, .18, .25); removeFood(i);
+    }
+  }
+}
 function clearActors() {
+  while (G.items.length) removeFood(G.items.length - 1);
   for (const e of G.enemies) e.dispose(); G.enemies.length = 0;
   for (const s of G.shots) scene.remove(s.m); G.shots.length = 0;
   if (G.player) { G.player.dispose(); G.player = null; }
@@ -479,6 +511,7 @@ function hitEnemy(e, dmg, dir, down, kb, special) {
   if (e.hp <= 0) {
     if (e.def.kind === 'boss') voice('boss_die'); else voice(['en_die1', 'en_die2'], .9, .12, .9, e.def.vr || 1);
     e.alive = false; e.state = 'down'; e.stateT = 0; e.dying = true; e.kbV = dir * (kb + 4.5); e.facing = -dir; e.vy = special ? 9 : 7.5; e.bounced = false; e.setAnim('down'); G.score += e.def.score;
+    const dr = DROPS[e.charId]; if (dr && Math.random() < dr[0]) { const ex = e.x, ez = e.z; after(0.5, () => spawnFood(dr[1], clamp(ex, G.camX - edgeHalf(ez, 1.2), G.camX + edgeHalf(ez, 1.2)), ez, true)); }
     if (!G.enemies.some((o) => o.alive) && !G.spawnQ.length) { G.slow = Math.max(G.slow || 0, .5); G.zoomT = .92; after(.22, () => { G.zoomT = 1; }); }
     if (e.def.kind === 'boss') { G.freeze = 0; G.slow = 1.6; sfx.heavy(); screenFlash('#fff', .8, 500); shake(.7); }
     return;
@@ -521,6 +554,11 @@ function airPhysics(a, dt) {
   if (a.meta.anims.down) { a.x += a.kbV * dt; a.kbV *= Math.exp(-6 * dt); return; } // drawn fall already carries the arc
   a.x += a.kbV * dt; a.vy -= 26 * dt; a.y += a.vy * dt;
   if (a.y <= 0) { a.y = 0; if (!a.bounced) { a.bounced = true; a.vy = 3.4; a.kbV *= 0.55; ring(a.x, a.z, 0xcfd8ff, 2.6); shake(.16); noise(.12, .35, 500, 90); } else { a.vy = 0; a.kbV *= Math.exp(-7 * dt); } }
+}
+function healNum(x, y, z, txt) {
+  const v = new THREE.Vector3(x, y, z).project(camera); const el = document.createElement('div'); el.className = 'dn hl'; el.textContent = txt;
+  el.style.left = ((v.x * 0.5 + 0.5) * VIEW.w) + 'px'; el.style.top = ((-v.y * 0.5 + 0.5) * VIEW.h) + 'px';
+  $('#hud').appendChild(el); el.addEventListener('animationend', () => el.remove());
 }
 function dmgNum(x, y, z, val, big) {
   const v = new THREE.Vector3(x, y, z).project(camera); const el = document.createElement('div'); el.className = 'dn' + (big ? ' big' : ''); el.textContent = val;
@@ -712,13 +750,14 @@ function updateDirector(dt) {
   if (G.segState === 'travel') {
     if (G.camX >= seg.lockX - 0.08) {
       G.segState = 'fight'; G.wave = 0; $('#go').style.display = 'none';
+      if (G.seg === 1) spawnFood('food_rice', seg.lockX - 3, -1.4); if (G.seg === 2) spawnFood('food_bun', seg.lockX + 2.5, 0.8);
       if (seg.boss) { G.paused = true; sfx.warn(); message('WARNING', 900); bgm('bgm_boss'); setTimeout(() => { voice('boss_intro'); showCutin({ img: 'cutin_boss_heukrang.jpg', pos: '50% 36%', skillImg: 'name_heukrang.webp', name: '흑랑', quote: '감히 내 산채에 발을 들여?', css: '#b48cff' }, () => { G.paused = false; queueWave(seg.waves[0]); $('#boss').style.display = 'block'; }); }, 700); }
       else queueWave(seg.waves[0]);
     }
   } else if (G.segState === 'fight') {
     for (let i = G.spawnQ.length - 1; i >= 0; i--) { const q = G.spawnQ[i]; q.t -= dt; if (q.t <= 0) { if (!charDone[q.id]) { loadChar(q.id); continue; } spawnEnemy(q.id, q.side, q.i); G.spawnQ.splice(i, 1); } }
     const b = G.bossRef;
-    if (b && b.alive && !b.adds && b.hp < b.maxHp * 0.5) { b.adds = true; message('졸개들이 몰려온다!', 1100); queueWave(['e1_grunt', 'e5_assassin', 'e1_grunt']); }
+    if (b && b.alive && !b.adds && b.hp < b.maxHp * 0.5) { b.adds = true; spawnFood('food_meat', G.camX - 2.5, -1.2, true); message('졸개들이 몰려온다!', 1100); queueWave(['e1_grunt', 'e5_assassin', 'e1_grunt']); }
     if (!G.spawnQ.length && !G.enemies.length) {
       G.wave++;
       if (G.wave < seg.waves.length) queueWave(seg.waves[G.wave]);
@@ -774,7 +813,7 @@ function update(dt) {
   for (const e of G.enemies) updateEnemy(e, dt);
   separate();
   for (let i = G.enemies.length - 1; i >= 0; i--) if (G.enemies[i].remove) { G.enemies[i].dispose(); G.enemies.splice(i, 1); }
-  updateShots(dt); updateDirector(dt); updateParticles(dt);
+  updateShots(dt); updateDirector(dt); updateItems(dt); updateParticles(dt);
   if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) { G.combo = 0; comboPop(); } }
   // camera
   const seg = SEGS[Math.min(G.seg, SEGS.length - 1)];
@@ -809,6 +848,8 @@ function frame(t) {
   [CHARS, PROPS, LAYERS] = await Promise.all([CHAR_DIR + 'chars.json', 'assets/bg/props.json', 'assets/bg/layers.json'].map((u) => fetch(assetUrl(u)).then((r) => r.json())));
   const jobs = [loadTex('ground', 'assets/bg/ground.jpg', { repeat: true })];
   for (const id of Object.keys(PROPS)) jobs.push(loadTex(id, `assets/bg/${id}.png`));
+  jobs.push(fetch(assetUrl('assets/items/items.json')).then((r) => r.json()).then((j) => { ITEMS_META = j; }));
+  for (const id of Object.keys(FOODS)) jobs.push(loadTex(id, `assets/items/${id}.webp`));
   for (const id of Object.keys(LAYERS)) jobs.push(loadTex(id, `assets/bg/${LAYERS[id].file}`, id === 'far_ridge' ? { repeat: true, mirror: true } : {}));
   // only the first fight's enemies block the start; the rest stream in while the player is on the title screen
   for (const cid of SEGS[0].waves.flat()) jobs.push(loadChar(cid));
@@ -819,6 +860,7 @@ function frame(t) {
   $('#stage').insertBefore(sky, canvas); canvas.style.position = 'relative';
   buildWorld();
   $('#loading').style.display = 'none';
+  window.__step = (n, d = 1 / 60) => { for (let i = 0; i < n; i++) update(d); render(); }; // test hook
   window.__G = G; window.__startGame = startGame; window.__input = input; window.__VIEW = VIEW; window.__charDone = charDone; window.__SND = SND; window.__BGM = BGM; window.__AC = AC;
   requestAnimationFrame(frame);
 })().catch((e) => { $('#loading').textContent = '불러오기 실패: ' + e.message; console.error(e); });

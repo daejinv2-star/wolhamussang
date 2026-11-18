@@ -46,6 +46,7 @@ canvas{display:block;width:100%;height:100%}
 #msg{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);font-weight:900;font-size:min(calc(var(--sw)*8),56px);letter-spacing:4px;text-shadow:0 0 18px #6cf,0 4px 0 #024;opacity:0;white-space:nowrap}
 .dn{position:absolute;font-weight:900;font-style:italic;font-size:22px;color:#fff;text-shadow:0 2px 0 #a03000,0 0 8px #f80;animation:dn .65s ease-out forwards;pointer-events:none;white-space:nowrap}
 .dn.big{font-size:36px;color:#ffe14a}
+.dn.hl{font-size:30px;color:#9dff9a;text-shadow:0 2px 0 #0a4a12,0 0 10px #3f3}
 @keyframes dn{0%{transform:translate(-50%,0) scale(1.8);opacity:1}22%{transform:translate(-50%,-14px) scale(1)}100%{transform:translate(-50%,-58px) scale(1);opacity:0}}
 /* touch controls */
 #touch{position:absolute;inset:0;display:none}
@@ -126,7 +127,7 @@ canvas{display:block;width:100%;height:100%}
       <div class="card" data-hero="h1_mujin"><div class="pf" style="background-image:url(assets/ui/cutin_h1_mujin.jpg);background-position:42% 40%"></div><h3>무진</h3><p>환도 · 화염<br>빠른 연타, 필살 화룡참</p></div>
       <div class="card" data-hero="h2_seolhwa"><div class="pf" style="background-image:url(assets/ui/cutin_h2_seolhwa.jpg);background-position:45% 35%"></div><h3>설화</h3><p>월아창 · 빙월<br>긴 사거리, 필살 빙월창</p></div>
     </div>
-    <div class="hint" id="hint">PC: 방향키/WASD 이동(두 번 누르면 달리기) · J 공격 · K 필살 · 스페이스 점프 &nbsp;|&nbsp; 모바일: 스틱 끝까지 밀면 달리기 · 달리며 공격 = 돌진 베기</div>
+    <div class="hint" id="hint">PC: 방향키/WASD 이동(두 번 누르면 달리기) · J 공격 · X 점프 · 스페이스 필살 &nbsp;|&nbsp; 모바일: 스틱 끝까지 밀면 달리기 · 달리며 공격 = 돌진 베기</div>
   </div>
   <div class="panel" id="clear"><div class="big">STAGE CLEAR</div><div class="res" id="clearres"></div><div><span class="pbtn" data-act="retry">다시하기</span><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
   <div class="panel" id="over"><div class="big">GAME OVER</div><div class="res">흑랑채의 밤은 아직 끝나지 않았다.</div><div><span class="pbtn" data-act="retry">다시하기</span><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
