@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/ui/icon-192.png">
 <link rel="icon" href="assets/ui/icon-192.png">
-<title>월하무쌍 테스트 빌드</title>
+<title>월하무쌍</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;width:100%;position:fixed;overscroll-behavior:none;background:#05060f;overflow:hidden;font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#fff;touch-action:none}
@@ -21,7 +21,8 @@ canvas{display:block;width:100%;height:100%}
 #hud{position:absolute;inset:0;pointer-events:none;display:none}
 .pl{position:absolute;left:max(14px,var(--safeL));top:10px;display:flex;gap:10px;align-items:center}
 .face{width:58px;height:58px;border:2px solid #e9c873;border-radius:10px;background:#111 center/cover;box-shadow:0 0 0 2px #0008,0 4px 10px #000a;transform:rotate(-3deg)}
-.bars{width:min(calc(var(--sw)*34),300px)}
+.face.buff{border-color:#ffe36a;box-shadow:0 0 0 2px #0008,0 0 16px #ffd84a}
+.bars{width:min(calc(var(--sw)*30),280px)}
 .nm{font-weight:800;font-size:15px;letter-spacing:.5px;text-shadow:0 2px 3px #000,0 0 6px #000}
 .nm small{font-weight:600;opacity:.75;margin-left:6px;font-size:11px}
 .bar{position:relative;height:13px;margin-top:4px;background:#0009;border:1px solid #fff5;border-radius:3px;overflow:hidden;transform:skewX(-14deg)}
@@ -35,19 +36,48 @@ canvas{display:block;width:100%;height:100%}
 .tr{position:absolute;right:max(14px,var(--safeR));top:10px;text-align:right;text-shadow:0 2px 3px #000,0 0 6px #000}
 .tr .st{font-size:13px;font-weight:700;color:#e9d9a8}
 .tr .sc{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:1px}
-#boss{position:absolute;left:50%;top:14px;width:min(calc(var(--sw)*40),420px);transform:translateX(-50%);display:none;text-align:center}
+#mute{pointer-events:auto;display:inline-block;margin-top:3px;padding:2px 9px;font-size:11px;font-weight:700;border:1px solid #fff6;border-radius:999px;background:#0008;cursor:pointer}
+#items{position:absolute;right:max(14px,var(--safeR));top:92px;display:flex;gap:6px}
+.itb{pointer-events:auto;position:relative;width:42px;height:42px;border-radius:9px;border:2px solid #fff4;background:#0006 center/76% no-repeat;cursor:pointer}
+.itb.empty{opacity:.32}
+.itb b{position:absolute;right:2px;bottom:0;font-size:12px;font-weight:900;text-shadow:0 1px 2px #000,0 0 4px #000}
+.itb i{position:absolute;left:3px;top:1px;font-size:10px;font-style:normal;font-weight:800;color:#fffa;text-shadow:0 1px 2px #000}
+.itb.on{transform:scale(.9);border-color:#fffc}
+#boss{position:absolute;left:50%;top:14px;width:min(calc(var(--sw)*36),400px);transform:translateX(-50%);display:none;text-align:center}
 #boss .nm{color:#d9b6ff}
 #boss .bar{height:11px}
 #bosshp i{background:linear-gradient(#e2a6ff,#7a2fd0)}
-#combo{position:absolute;right:max(18px,var(--safeR));top:74px;font-weight:900;font-style:italic;font-size:34px;color:#ffd54a;text-shadow:0 3px 0 #7a2a00,0 0 12px #f80;opacity:0;transform-origin:right center}
+#combo{position:absolute;right:max(18px,var(--safeR));top:142px;font-weight:900;font-style:italic;font-size:34px;color:#ffd54a;text-shadow:0 3px 0 #7a2a00,0 0 12px #f80;opacity:0;transform-origin:right center}
 #combo small{font-size:15px;margin-left:4px;color:#fff}
 #go{position:absolute;right:8%;top:40%;font-weight:900;font-size:42px;font-style:italic;color:#fff;text-shadow:0 0 14px #ffb300,0 3px 0 #a04a00;display:none;animation:go .5s infinite alternate}
 @keyframes go{from{transform:translateX(0)}to{transform:translateX(18px)}}
-#msg{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);font-weight:900;font-size:min(calc(var(--sw)*8),56px);letter-spacing:4px;text-shadow:0 0 18px #6cf,0 4px 0 #024;opacity:0;white-space:nowrap}
+#msg{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);font-weight:900;font-size:min(calc(var(--sw)*7),52px);letter-spacing:4px;text-shadow:0 0 18px #6cf,0 4px 0 #024;opacity:0;white-space:nowrap}
+#skname{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%);font-weight:900;font-size:min(calc(var(--sw)*5),38px);letter-spacing:6px;color:#fff;opacity:0;white-space:nowrap;text-shadow:0 0 14px var(--c,#fc6),0 3px 0 #000}
+#skname.on{animation:skn .9s ease-out forwards}
+@keyframes skn{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 .dn{position:absolute;font-weight:900;font-style:italic;font-size:22px;color:#fff;text-shadow:0 2px 0 #a03000,0 0 8px #f80;animation:dn .65s ease-out forwards;pointer-events:none;white-space:nowrap}
 .dn.big{font-size:36px;color:#ffe14a}
 .dn.hl{font-size:30px;color:#9dff9a;text-shadow:0 2px 0 #0a4a12,0 0 10px #3f3}
+.dn.gd{font-size:18px;color:#cfd8ff;text-shadow:0 2px 0 #223,0 0 8px #89f}
+.dn.au{font-size:26px;color:#ffe46a;text-shadow:0 2px 0 #6a4a00,0 0 10px #fc3}
 @keyframes dn{0%{transform:translate(-50%,0) scale(1.8);opacity:1}22%{transform:translate(-50%,-14px) scale(1)}100%{transform:translate(-50%,-58px) scale(1);opacity:0}}
+/* skills */
+#skillui{position:absolute;inset:0;pointer-events:none;display:none}
+.skb{position:absolute;pointer-events:auto;width:58px;height:58px;border-radius:50%;border:2px solid #fff4;background:radial-gradient(#fff1,#fff0);cursor:pointer}
+.skb .ic{position:absolute;inset:4px;border-radius:50%;background:#000 center/cover;opacity:.6}
+.skb .cd{position:absolute;inset:4px;border-radius:50%;background:conic-gradient(rgba(0,0,0,.72) var(--p,0%),transparent 0)}
+.skb .ct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px;text-shadow:0 1px 3px #000}
+.skb .k{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);font-size:10px;font-weight:800;color:#fffb;text-shadow:0 1px 2px #000}
+.skb.ready .ic{opacity:.95}
+.skb.on{transform:scale(.92);border-color:#fffc}
+#stage:not(.touch) #skillui .skb{bottom:22px}
+#stage:not(.touch) #sk1{left:calc(50% - 98px)}
+#stage:not(.touch) #sk2{left:calc(50% - 29px)}
+#stage:not(.touch) #sk3{left:calc(50% + 40px)}
+#stage.touch .skb .k{display:none}
+#stage.touch #sk1{right:calc(var(--safeR) + 124px);bottom:89px}
+#stage.touch #sk2{right:calc(var(--safeR) + 80px);bottom:146px}
+#stage.touch #sk3{right:calc(var(--safeR) + 14px);bottom:140px}
 /* touch controls */
 #touch{position:absolute;inset:0;display:none}
 #joyzone{position:absolute;left:0;bottom:0;width:46%;height:72%}
@@ -55,12 +85,11 @@ canvas{display:block;width:100%;height:100%}
 #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:radial-gradient(#fff6,#fff2);border:1px solid #fff5}
 .btn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff9;text-shadow:0 1px 3px #000c;border:2px solid #fff4;background:radial-gradient(#fff1,#fff0)}
 .btn:active,.btn.on{transform:scale(.94);background:radial-gradient(#fff5,#fff2);border-color:#fff9;color:#fff}
-#btnA{right:max(26px,var(--safeR));bottom:30px;width:96px;height:96px;font-size:19px}
-#btnS{right:calc(max(26px,var(--safeR)) + 104px);bottom:86px;width:76px;height:76px;font-size:15px;border-color:#fff2;color:#fff5}
+#btnA{right:calc(var(--safeR) + 22px);bottom:26px;width:92px;height:92px;font-size:19px}
+#btnJ{right:calc(var(--safeR) + 130px);bottom:18px;width:64px;height:64px;font-size:14px}
+#btnS{right:calc(var(--safeR) + 204px);bottom:40px;width:64px;height:64px;font-size:14px;border-color:#fff2;color:#fff5}
 #btnS.ready{border-color:#fffc;color:#fff;animation:ready .6s infinite alternate}
 @keyframes ready{from{background:radial-gradient(#fff1,#fff0);box-shadow:0 0 0 0 #fff0}to{background:radial-gradient(#fff4,#fff1);box-shadow:0 0 14px 2px #fff5}}
-#btnJ{right:calc(max(26px,var(--safeR)) + 106px);bottom:8px;width:72px;height:72px;font-size:15px}
-#mute{pointer-events:auto;display:inline-block;margin-top:3px;padding:2px 9px;font-size:11px;font-weight:700;border:1px solid #fff6;border-radius:999px;background:#0008;cursor:pointer}
 /* cut-in */
 #cutin{position:absolute;inset:0;display:none;overflow:hidden;background:rgba(2,3,16,.62)}
 #cutin .band{position:absolute;left:-12%;width:124%;top:22%;height:48%;transform:rotate(-6deg) translateX(-110%);overflow:hidden;border-top:4px solid #f3d27a;border-bottom:4px solid #f3d27a;box-shadow:0 0 40px #000,0 0 0 2px #000 inset;background:#06081c}
@@ -74,28 +103,49 @@ canvas{display:block;width:100%;height:100%}
 #cutin .skill{position:absolute;right:17%;top:7%;height:86%;opacity:0;filter:drop-shadow(0 0 12px #000)}
 #cutin.on .skill{animation:skillin 1.25s ease-out forwards}
 @keyframes skillin{0%,14%{opacity:0;transform:rotate(6deg) scale(2.2)}26%{opacity:1;transform:rotate(6deg) scale(1)}88%{opacity:1;transform:rotate(6deg) scale(1.04)}100%{opacity:0;transform:rotate(6deg) scale(1.2)}}
-#cutin .quote{position:absolute;left:9%;top:71%;font-size:min(calc(var(--sw)*3.4),24px);font-weight:900;text-shadow:0 2px 0 #000,0 0 10px #000;opacity:0;transform:rotate(-6deg)}
+#cutin .quote{position:absolute;left:9%;top:71%;font-size:min(calc(var(--sw)*3.2),24px);font-weight:900;text-shadow:0 2px 0 #000,0 0 10px #000;opacity:0;transform:rotate(-6deg)}
 #cutin .quote b{font-size:1.25em;margin-right:8px}
 #cutin.on .quote{animation:quotein 1.25s ease-out forwards}
 @keyframes quotein{0%,18%{opacity:0;transform:rotate(-6deg) translateX(-30px)}30%,88%{opacity:1;transform:rotate(-6deg) translateX(0)}100%{opacity:0}}
+#cutin.long.on .band{animation-duration:2s}#cutin.long.on .img{animation-duration:2s}#cutin.long.on .skill{animation-duration:2s}#cutin.long.on .quote{animation-duration:2s}
+/* story cut-scene */
+#cine{position:absolute;inset:0;display:none;background:#000;z-index:5}
+#cine video,#cine img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
+#cine img{animation:kb 9s linear forwards}
+@keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.12)}}
+#cine .lb{position:absolute;left:0;right:0;height:9%;background:#000}
+#cine .lb.t{top:0}#cine .lb.b{bottom:0}
+#cine .fade{position:absolute;inset:0;background:#000;opacity:1;transition:opacity .6s;pointer-events:none}
+#sub{position:absolute;left:50%;bottom:13%;transform:translateX(-50%);width:min(88%,980px);text-align:center;font-size:min(calc(var(--sw)*3),24px);font-weight:700;line-height:1.5;text-shadow:0 2px 3px #000,0 0 10px #000,0 0 2px #000;opacity:0;transition:opacity .35s}
+#sub b{color:#f3d27a;margin-right:10px}
+#sub.narr{font-style:italic;color:#e8e2cc}
+#skip{position:absolute;right:max(16px,var(--safeR));top:14px;padding:6px 14px;border:1px solid #fff6;border-radius:999px;background:#0008;font-size:13px;font-weight:700;cursor:pointer;z-index:2}
 /* panels */
-.panel{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(3,4,20,.25),rgba(3,4,20,.78));text-align:center;padding:10px}
+.panel{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(3,4,20,.25),rgba(3,4,20,.8));text-align:center;padding:10px}
 #title{display:flex}
-#logo{height:min(calc(var(--sh)*34),260px);max-width:calc(var(--sw)*72);object-fit:contain;margin-top:calc(var(--sh)*-1);filter:drop-shadow(0 0 22px #f5c66055)}
-.sub{font-size:clamp(10px,calc(var(--sh)*3),13px);letter-spacing:6px;color:#d8c9a0;margin:-4px 0 calc(var(--sh)*2.2);text-shadow:0 2px 4px #000}
-.cards{display:flex;gap:min(calc(var(--sw)*4),28px);margin-top:2px}
-.card{pointer-events:auto;width:min(calc(var(--sw)*30),250px);padding:8px 10px 9px;border:2px solid #e9c87399;border-radius:14px;background:linear-gradient(#141a3acc,#070916e6);box-shadow:0 10px 30px #000c;cursor:pointer;transition:transform .12s,border-color .12s}
+#logo{height:min(calc(var(--sh)*30),230px);max-width:calc(var(--sw)*70);object-fit:contain;margin-top:calc(var(--sh)*-2);filter:drop-shadow(0 0 22px #f5c66055)}
+.sub{font-size:clamp(10px,calc(var(--sh)*3),13px);letter-spacing:6px;color:#d8c9a0;margin:-4px 0 calc(var(--sh)*2);text-shadow:0 2px 4px #000}
+.cards{display:flex;gap:min(calc(var(--sw)*1.6),14px);margin-top:2px}
+.card{pointer-events:auto;width:min(calc(var(--sw)*17.5),190px);padding:6px 6px 7px;border:2px solid #e9c87399;border-radius:12px;background:linear-gradient(#141a3acc,#070916e6);box-shadow:0 10px 30px #000c;cursor:pointer;transition:transform .12s,border-color .12s}
 .card:hover,.card:active{transform:translateY(-4px) scale(1.03);border-color:#ffe29a}
-.card .pf{height:min(calc(var(--sh)*24),150px);border-radius:9px;background:#000 center 30%/cover;border:1px solid #fff3}
-.card h3{margin:5px 0 1px;font-size:clamp(14px,calc(var(--sh)*4.4),20px);letter-spacing:2px}
-.card p{margin:0;font-size:clamp(9px,calc(var(--sh)*2.8),12px);color:#c9d2ee;line-height:1.4}
-.hint{margin-top:calc(var(--sh)*2.2);font-size:clamp(9px,calc(var(--sh)*2.6),12px);color:#aeb8d8;text-shadow:0 1px 2px #000}
-.big{font-size:min(calc(var(--sw)*9),64px);font-weight:900;letter-spacing:6px;text-shadow:0 0 22px #fc6,0 5px 0 #5a2a00}
+.card .pf{height:min(calc(var(--sh)*22),130px);border-radius:8px;background:#000 center 30%/cover;border:1px solid #fff3}
+.card h3{margin:4px 0 1px;font-size:clamp(13px,calc(var(--sh)*4),18px);letter-spacing:2px}
+.card p{margin:0;font-size:clamp(9px,calc(var(--sh)*2.5),11px);color:#c9d2ee;line-height:1.35}
+.hint{margin-top:calc(var(--sh)*2);font-size:clamp(9px,calc(var(--sh)*2.5),12px);color:#aeb8d8;text-shadow:0 1px 2px #000;max-width:92%}
+.big{font-size:min(calc(var(--sw)*8),60px);font-weight:900;letter-spacing:6px;text-shadow:0 0 22px #fc6,0 5px 0 #5a2a00}
 #over .big{text-shadow:0 0 22px #f44,0 5px 0 #400}
 .res{font-size:16px;margin:10px 0 18px;line-height:1.8;color:#e8e2cc}
-.pbtn{pointer-events:auto;display:inline-block;margin:0 6px;padding:11px 24px;border-radius:999px;border:2px solid #e9c873;background:#1a1f45;font-weight:800;font-size:15px;color:#fff;cursor:pointer}
-#rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#05060f;font-size:18px;font-weight:800;z-index:9;text-align:center;line-height:1.7}
-
+.pbtn{pointer-events:auto;display:inline-block;margin:4px 6px;padding:10px 22px;border-radius:999px;border:2px solid #e9c873;background:#1a1f45;font-weight:800;font-size:15px;color:#fff;cursor:pointer}
+#stages h2{margin:0 0 4px;font-size:clamp(18px,calc(var(--sh)*6),30px);letter-spacing:6px;text-shadow:0 0 14px #fc6,0 3px 0 #5a2a00}
+#stages .who{font-size:13px;color:#d8c9a0;margin-bottom:calc(var(--sh)*2)}
+#stagelist{display:grid;grid-template-columns:repeat(4,min(calc(var(--sw)*21),220px));gap:min(calc(var(--sw)*1.4),12px)}
+.stg{pointer-events:auto;position:relative;height:min(calc(var(--sh)*22),120px);border-radius:10px;border:2px solid #e9c87399;background:#000 center/cover;overflow:hidden;cursor:pointer;text-align:left}
+.stg span{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;background:linear-gradient(transparent,#000d);font-weight:800;font-size:clamp(11px,calc(var(--sh)*3.4),15px);text-shadow:0 1px 3px #000}
+.stg span small{display:block;font-size:.72em;color:#f3d27a;font-weight:700}
+.stg.lock{filter:grayscale(1) brightness(.35);cursor:default}
+.stg.lock::after{content:"잠김";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;letter-spacing:4px}
+.stg.done::before{content:"완료";position:absolute;right:6px;top:5px;font-size:11px;font-weight:900;padding:2px 7px;border-radius:999px;background:#e9c873;color:#2a1a00;z-index:1}
+#ending .big{font-size:min(calc(var(--sw)*9),70px)}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#05060f;z-index:8;font-weight:800;letter-spacing:3px;color:#d8c9a0}
 #fps{position:absolute;left:8px;bottom:6px;font-size:10px;color:#fff8;pointer-events:none}
 </style>
@@ -107,11 +157,13 @@ canvas{display:block;width:100%;height:100%}
   <div id="flash"></div>
   <div id="hud">
     <div class="pl"><div class="face" id="face"></div><div class="bars"><div class="nm" id="pname"></div><div class="bar" id="hp"><i></i></div><div class="bar g" id="gauge"><i></i></div></div></div>
-    <div class="tr"><div class="st" id="stname">제1막 흑랑 고개</div><div class="sc" id="score">000000</div><div id="mute">소리 켬</div></div>
-    <div id="boss"><div class="nm">흑랑채 두목 · 흑랑</div><div class="bar" id="bosshp"><i></i></div></div>
+    <div class="tr"><div class="st" id="stname"></div><div class="sc" id="score">000000</div><div id="mute">소리 켬</div></div>
+    <div id="items"><div class="itb" data-i="0"><i>1</i><b></b></div><div class="itb" data-i="1"><i>2</i><b></b></div><div class="itb" data-i="2"><i>3</i><b></b></div></div>
+    <div id="boss"><div class="nm" id="bossname"></div><div class="bar" id="bosshp"><i></i></div></div>
     <div id="combo"></div>
     <div id="go">GO ▶</div>
     <div id="msg"></div>
+    <div id="skname"></div>
   </div>
   <div id="touch">
     <div id="joyzone"><div id="joy"><div id="knob"></div></div></div>
@@ -119,22 +171,26 @@ canvas{display:block;width:100%;height:100%}
     <div class="btn" id="btnJ">점프</div>
     <div class="btn" id="btnA">공격</div>
   </div>
+  <div id="skillui">
+    <div class="skb" id="sk1" data-i="0"><div class="ic"></div><div class="cd"></div><div class="ct"></div><div class="k">A</div></div>
+    <div class="skb" id="sk2" data-i="1"><div class="ic"></div><div class="cd"></div><div class="ct"></div><div class="k">S</div></div>
+    <div class="skb" id="sk3" data-i="2"><div class="ic"></div><div class="cd"></div><div class="ct"></div><div class="k">D</div></div>
+  </div>
   <div id="cutin"><div class="band"><div class="img"></div><div class="lines"></div><img class="skill" alt=""></div><div class="quote"></div></div>
   <div class="panel" id="title">
     <img id="logo" src="assets/ui/logo_title.webp" alt="월하무쌍">
-    <div class="sub">달빛 아래 흑랑채를 베어라</div>
-    <div class="cards">
-      <div class="card" data-hero="h1_mujin"><div class="pf" style="background-image:url(assets/ui/cutin_h1_mujin.jpg);background-position:42% 40%"></div><h3>무진</h3><p>환도 · 화염<br>빠른 연타, 필살 화룡참</p></div>
-      <div class="card" data-hero="h2_seolhwa"><div class="pf" style="background-image:url(assets/ui/cutin_h2_seolhwa.jpg);background-position:45% 35%"></div><h3>설화</h3><p>월아창 · 빙월<br>긴 사거리, 필살 빙월창</p></div>
-    </div>
-    <div class="hint" id="hint">PC: 방향키/WASD 이동(두 번 누르면 달리기) · J 공격 · X 점프 · 스페이스 필살 &nbsp;|&nbsp; 모바일: 스틱 끝까지 밀면 달리기 · 달리며 공격 = 돌진 베기</div>
+    <div class="sub">붉은 달이 뜨기 전에, 일곱 막의 싸움</div>
+    <div class="cards" id="cards"></div>
+    <div class="hint" id="hint">PC: 방향키 이동(두 번 누르면 달리기) · J 공격 · X 점프 · A/S/D 스킬 · 스페이스 필살 · 1/2/3 아이템</div>
   </div>
-  <div class="panel" id="clear"><div class="big">STAGE CLEAR</div><div class="res" id="clearres"></div><div><span class="pbtn" data-act="retry">다시하기</span><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
-  <div class="panel" id="over"><div class="big">GAME OVER</div><div class="res">흑랑채의 밤은 아직 끝나지 않았다.</div><div><span class="pbtn" data-act="retry">다시하기</span><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
+  <div class="panel" id="stages"><h2>막 선택</h2><div class="who" id="stwho"></div><div id="stagelist"></div><div style="margin-top:12px"><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
+  <div class="panel" id="clear"><div class="big" id="cleartitle">STAGE CLEAR</div><div class="res" id="clearres"></div><div><span class="pbtn" data-act="next" id="btnNext">다음 막</span><span class="pbtn" data-act="stages">막 선택</span><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
+  <div class="panel" id="over"><div class="big">GAME OVER</div><div class="res">월하의 싸움은 아직 끝나지 않았다.</div><div><span class="pbtn" data-act="retry">다시하기</span><span class="pbtn" data-act="stages">막 선택</span><span class="pbtn" data-act="title">캐릭터 선택</span></div></div>
+  <div class="panel" id="ending"><div class="big">월하무쌍</div><div class="res">붉은 달은 걷히고, 은빛 달이 다시 떠올랐다.<br>끝까지 함께해 주셔서 감사합니다.</div><div><span class="pbtn" data-act="stages">막 선택</span><span class="pbtn" data-act="title">처음으로</span></div></div>
+  <div id="cine"><video id="cv" muted playsinline preload="auto"></video><img id="ci" alt=""><div class="lb t"></div><div class="lb b"></div><div id="sub"></div><div class="fade" id="cfade"></div><div id="skip">건너뛰기 ▶</div></div>
   <div id="fps"></div>
 </div>
 <div id="loading">불러오는 중…</div>
-<div id="rotate">화면을 가로로 돌려 주세요</div>
 <script type="module" src="game.js"></script>
 </body>
 </html>

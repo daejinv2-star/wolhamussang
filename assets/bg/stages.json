@@ -1,0 +1,206 @@
+{
+ "s2": {
+  "sky": "s2_sky.jpg",
+  "ridge": {
+   "file": "s2_ridge.webp",
+   "w": 1024,
+   "h": 295
+  },
+  "midA": {
+   "file": "s2_midA.webp",
+   "w": 1100,
+   "h": 406
+  },
+  "midB": {
+   "file": "s2_midB.webp",
+   "w": 1100,
+   "h": 455
+  },
+  "arena": {
+   "file": "s2_arena.webp",
+   "w": 1400,
+   "h": 756
+  },
+  "ground": "s2_ground.jpg",
+  "p1": {
+   "file": "s2_p1.webp",
+   "w": 748,
+   "h": 520
+  },
+  "p2": {
+   "file": "s2_p2.webp",
+   "w": 366,
+   "h": 520
+  }
+ },
+ "s3": {
+  "sky": "s3_sky.jpg",
+  "ridge": {
+   "file": "s3_ridge.webp",
+   "w": 1024,
+   "h": 321
+  },
+  "midA": {
+   "file": "s3_midA.webp",
+   "w": 1100,
+   "h": 465
+  },
+  "midB": {
+   "file": "s3_midB.webp",
+   "w": 1100,
+   "h": 457
+  },
+  "arena": {
+   "file": "s3_arena.webp",
+   "w": 1400,
+   "h": 719
+  },
+  "ground": "s3_ground.jpg",
+  "p1": {
+   "file": "s3_p1.webp",
+   "w": 362,
+   "h": 520
+  },
+  "p2": {
+   "file": "s3_p2.webp",
+   "w": 526,
+   "h": 520
+  }
+ },
+ "s4": {
+  "sky": "s4_sky.jpg",
+  "ridge": {
+   "file": "s4_ridge.webp",
+   "w": 1024,
+   "h": 295
+  },
+  "midA": {
+   "file": "s4_midA.webp",
+   "w": 1100,
+   "h": 434
+  },
+  "midB": {
+   "file": "s4_midB.webp",
+   "w": 1100,
+   "h": 446
+  },
+  "arena": {
+   "file": "s4_arena.webp",
+   "w": 1400,
+   "h": 700
+  },
+  "ground": "s4_ground.jpg",
+  "p1": {
+   "file": "s4_p1.webp",
+   "w": 537,
+   "h": 520
+  },
+  "p2": {
+   "file": "s4_p2.webp",
+   "w": 298,
+   "h": 520
+  }
+ },
+ "s5": {
+  "sky": "s5_sky.jpg",
+  "ridge": {
+   "file": "s5_ridge.webp",
+   "w": 1024,
+   "h": 344
+  },
+  "midA": {
+   "file": "s5_midA.webp",
+   "w": 1100,
+   "h": 463
+  },
+  "midB": {
+   "file": "s5_midB.webp",
+   "w": 1100,
+   "h": 434
+  },
+  "arena": {
+   "file": "s5_arena.webp",
+   "w": 1400,
+   "h": 688
+  },
+  "ground": "s5_ground.jpg",
+  "p1": {
+   "file": "s5_p1.webp",
+   "w": 547,
+   "h": 520
+  },
+  "p2": {
+   "file": "s5_p2.webp",
+   "w": 904,
+   "h": 520
+  }
+ },
+ "s6": {
+  "sky": "s6_sky.jpg",
+  "ridge": {
+   "file": "s6_ridge.webp",
+   "w": 1024,
+   "h": 323
+  },
+  "midA": {
+   "file": "s6_midA.webp",
+   "w": 1100,
+   "h": 466
+  },
+  "midB": {
+   "file": "s6_midB.webp",
+   "w": 1100,
+   "h": 473
+  },
+  "arena": {
+   "file": "s6_arena.webp",
+   "w": 1400,
+   "h": 738
+  },
+  "ground": "s6_ground.jpg",
+  "p1": {
+   "file": "s6_p1.webp",
+   "w": 240,
+   "h": 520
+  },
+  "p2": {
+   "file": "s6_p2.webp",
+   "w": 445,
+   "h": 520
+  }
+ },
+ "s7": {
+  "sky": "s7_sky.jpg",
+  "ridge": {
+   "file": "s7_ridge.webp",
+   "w": 1024,
+   "h": 320
+  },
+  "midA": {
+   "file": "s7_midA.webp",
+   "w": 1100,
+   "h": 461
+  },
+  "midB": {
+   "file": "s7_midB.webp",
+   "w": 1100,
+   "h": 406
+  },
+  "arena": {
+   "file": "s7_arena.webp",
+   "w": 1400,
+   "h": 779
+  },
+  "ground": "s7_ground.jpg",
+  "p1": {
+   "file": "s7_p1.webp",
+   "w": 199,
+   "h": 520
+  },
+  "p2": {
+   "file": "s7_p2.webp",
+   "w": 480,
+   "h": 520
+  }
+ }
+}
